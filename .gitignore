@@ -842,3 +842,6 @@ secrets/
 
 # Datasets
 imageserver/dataset/
+#gomod
+go.mod
+go.sum
