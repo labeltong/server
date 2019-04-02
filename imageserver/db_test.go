@@ -15,7 +15,7 @@ func TestMongoDBCollection_InsertData(t *testing.T) {
 	d,e := InitDatabase("test","labeltong")
 	yesman := datatolabel{
 		FileID:"1",
-		Path:"./dataset/person1/4k-wallpaper-afterglow-blur-1236701.jpg",
+		Path:"dsfasdfsfsad",
 	}
 	if e !=nil{
 		t.Error("fail initserver")
