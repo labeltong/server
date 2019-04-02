@@ -831,7 +831,14 @@ healthchecksdb
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
+
+
+# End of https://www.gitignore.io/api/go,vim,node,macos,linux,emacs,python,windows,sublimetext,visualstudio,jetbrains+all,visualstudiocode
+
+# Repository-specific gitignore
+
 # Secret keys like test OAuth 2.0 token or AWS root key
 secrets/
 
-# End of https://www.gitignore.io/api/go,vim,node,macos,linux,emacs,python,windows,sublimetext,visualstudio,jetbrains+all,visualstudiocode
+# Datasets
+imageserver/dataset/

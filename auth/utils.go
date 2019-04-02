@@ -14,7 +14,6 @@ func RandToken() string {
 }
 
 
-
 func RenderTemplate(w http.ResponseWriter, name string, data interface{}) {
 	tmpl, _ := template.ParseFiles(name)
 	tmpl.Execute(w, data)
