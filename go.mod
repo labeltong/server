@@ -8,6 +8,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/gorilla/mux v1.7.0
+	github.com/gorilla/sessions v1.1.3
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8
 	github.com/mattn/go-colorable v0.1.1 // indirect

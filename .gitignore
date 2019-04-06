@@ -845,3 +845,9 @@ imageserver/dataset/
 #gomod
 go.mod
 go.sum
+
+./imageserver/controller_test.go
+./imageserver/db_test.go
+imageserver/controller_test\.go
+
+imageserver/db_test\.go

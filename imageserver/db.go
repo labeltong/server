@@ -11,6 +11,7 @@ import (
 )
 
 type key string
+
 const (
 	hostKey     = key("DBHOST")
 	usernameKey = key("DBadminID")
@@ -21,9 +22,9 @@ const (
 type MongoDBInstance struct {
 	DBClient *mongo.Client
 }
-type MongoDBCollection struct{
+type MongoDBCollection struct {
 	CollectionName string
-	Collection *mongo.Collection
+	Collection     *mongo.Collection
 }
 
 func InitMongoDBClient() (mdbi MongoDBInstance, err error) {
@@ -45,9 +46,9 @@ func InitMongoDBClient() (mdbi MongoDBInstance, err error) {
 
 	mdbi.DBClient, err = mongo.NewClient(options.Client().ApplyURI(uri))
 
-	if err != nil{
+	if err != nil {
 		// FATAL Error : Fail to connect DB
-		fmt.Printf("FATAL Error : Fail to connect DB with %s",err.Error())
+		fmt.Printf("FATAL Error : Fail to connect DB with %s", err.Error())
 		log.Fatal(err.Error())
 	}
 
@@ -58,26 +59,23 @@ func InitMongoDBClient() (mdbi MongoDBInstance, err error) {
 		log.Fatal(err.Error())
 	}
 
-
-
 	return mdbi, err
 }
 
-func InitDatabase(collName string, dbname string) (col MongoDBCollection, err error){
-	mdbi,err := InitMongoDBClient()
-	if err != nil{
+func InitDatabase(collName string, dbname string) (col MongoDBCollection, err error) {
+	mdbi, err := InitMongoDBClient()
+	if err != nil {
 		// FATAL Error : Fail to connect DB
-		fmt.Printf("FATAL Error : Fail to connect DB with %s",err.Error())
+		fmt.Printf("FATAL Error : Fail to connect DB with %s", err.Error())
 		log.Fatal(err.Error())
 	}
 	col.CollectionName = collName
 	col.Collection = mdbi.DBClient.Database(dbname).Collection(collName)
 	return col, err
 
-
 }
 
-func (mdbc *MongoDBCollection)InsertData(data datatolabel ) (err error){
+func (mdbc *MongoDBCollection) InsertData(data datatolabel) (err error) {
 	insertResult, err := mdbc.Collection.InsertOne(context.TODO(), data)
 	if err != nil {
 		fmt.Println("FATAL Error: Fail to insert Data")
@@ -90,8 +88,8 @@ func (mdbc *MongoDBCollection)InsertData(data datatolabel ) (err error){
 
 }
 
-func (mdbc *MongoDBCollection) RemoveData(dataId string) (err error){
-	deleteResult, err := mdbc.Collection.DeleteOne(context.TODO(), bson.M{"fileid":dataId})
+func (mdbc *MongoDBCollection) RemoveData(dataId string) (err error) {
+	deleteResult, err := mdbc.Collection.DeleteOne(context.TODO(), bson.M{"fileid": dataId})
 	if err != nil {
 		fmt.Println("FATAL Error: Fail to delete Data")
 		log.Fatal(err)
@@ -101,8 +99,8 @@ func (mdbc *MongoDBCollection) RemoveData(dataId string) (err error){
 	return nil
 }
 
-func (mdbc *MongoDBCollection) ReadData(dataId string) (data *datatolabel, err error){
-	err = mdbc.Collection.FindOne(context.TODO(), bson.M{"fileid":dataId}).Decode(&data)
+func (mdbc *MongoDBCollection) ReadData(dataId string) (data *datatolabel, err error) {
+	err = mdbc.Collection.FindOne(context.TODO(), bson.M{"fileid": dataId}).Decode(&data)
 	if err != nil {
 		fmt.Println("FATAL Error: Fail to read Data")
 		log.Fatal(err)

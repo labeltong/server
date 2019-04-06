@@ -10,10 +10,9 @@ type classifyAnswer struct {
 	ans int
 }
 
-
 type datatolabel struct {
 	FileID string //
-	Path string
+	Path   string
 	//Filetype string
 	//dataAnswer boxAnswer
 	//IsFake bool
@@ -23,19 +22,20 @@ type datatolabel struct {
 }
 
 type dataset struct {
-	datacoll *MongoDBCollection
+	datacoll    MongoDBCollection
 	DatasetName string
-	isBait bool
-	numofdata int
-	answerType string
+	isBait      bool
+	numofdata   int
+	answerType  string
 }
 
 type client struct {
-	email string
-	pw string
-	token string
-	points int
-	banpoint int
-	isbanned bool
-	isAdmin bool
+	email      string
+	pw         string
+	token      string
+	points     int
+	banpoint   int
+	isbanned   bool
+	isAdmin    bool
+	pointusage []string
 }
