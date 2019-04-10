@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ import (
 
 var (
 	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
-	key = []byte("super-secret-key")
-	store = sessions.NewCookieStore(key)
+	secretkey = []byte("super-secret-key")
+	store = sessions.NewCookieStore(secretkey)
 )
 
 func AuthInitSubrouter(r *mux.Router)  {
@@ -33,7 +33,6 @@ func AuthInitSubrouter(r *mux.Router)  {
 
 func secret(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "cookie-name")
-
 	// Check if user is authenticated
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
 		http.Error(w, "Forbidden", http.StatusForbidden)
