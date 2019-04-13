@@ -183,6 +183,8 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 	shoot := datashoot{}
 	shoot.FileID = result.FileID
 	shoot.Base64data = base64.StdEncoding.EncodeToString(buf)
+	shoot.Filetype = result.Filetype
+	shoot.Dataq = result.Dataq
 
 	if templateman ==false{
 		w.Header().Set("Content-Type", "application/json")

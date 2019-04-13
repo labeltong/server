@@ -7,15 +7,31 @@ type boxAnswer struct {
 	y2 int
 }
 type classifyAnswer struct {
-	ans int
+	questions []string
+	qlength int
+	//ans int
+}
+
+type sentimentAnswer struct {
+	questions []string
+	qlength int
+	//ans int
+}
+
+
+type answertype struct{
+	classify classifyAnswer
+	sentiment sentimentAnswer
+	box boxAnswer
+
 }
 
 type datatolabel struct {
 	FileNum int `json:"file_num"`
 	FileID string `json:"file_id"`
 	Path   string `json:"path"`
-	//Filetype string
-	//dataAnswer boxAnswer
+	Filetype string // classify, sentiment, box
+	Dataq []string
 	//IsFake bool
 	//NumofReq int
 	//NumofAns int
@@ -25,6 +41,8 @@ type datatolabel struct {
 type datashoot struct{
 	FileID string `json:"file_id"`
 	Base64data string `json:"base_64_data"`
+	Filetype string // classify, sentiment, box
+	Dataq []string
 }
 
 type dataset struct {
