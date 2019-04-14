@@ -79,7 +79,12 @@ func init(){
 
 func getAlldatasets(w http.ResponseWriter, r *http.Request){
 	r.Header.Set("Content-Type", "application/json")
+
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+
 
 	var results []dataset
 	collection := client.Database(os.Getenv("DBDatabase")).Collection("dataset_list")
@@ -150,6 +155,10 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 	r1 := rand.Intn(numofdata - 1) + 1
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+
+
 	collection = client.Database(os.Getenv("DBDatabase")).Collection(dsresult.Datasetdbname)
 	ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
 	res = collection.FindOne(ctx, bson.D{{"file_num" , r1}})
