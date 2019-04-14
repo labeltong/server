@@ -124,6 +124,7 @@ func getAlldatasets(w http.ResponseWriter, r *http.Request){
 		log.Error(fmt.Errorf("error occur in endocing json results\n"))
 		log.Fatal(err.Error())
 	}
+	fmt.Println(r.Host + "Request dataset list "+ time.Now().UTC().String())
 
 }
 
@@ -205,6 +206,7 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 			}
 		}
 	}
+	fmt.Println(r.Host + "Request random data from  "+ dsName + time.Now().UTC().String())
 
 
 }
