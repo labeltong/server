@@ -79,6 +79,7 @@ func init(){
 
 func getAlldatasets(w http.ResponseWriter, r *http.Request){
 	r.Header.Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	var results []dataset
 	collection := client.Database(os.Getenv("DBDatabase")).Collection("dataset_list")
@@ -148,7 +149,7 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 	rand.Seed(time.Now().UnixNano())
 	r1 := rand.Intn(numofdata - 1) + 1
 
-
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	collection = client.Database(os.Getenv("DBDatabase")).Collection(dsresult.Datasetdbname)
 	ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
 	res = collection.FindOne(ctx, bson.D{{"file_num" , r1}})
@@ -206,7 +207,7 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 			}
 		}
 	}
-	fmt.Println(r.Host + "Request random data from  "+ dsName + time.Now().UTC().String())
+	fmt.Println(r.RemoteAddr + "Request random data from  "+ dsName + time.Now().UTC().String())
 
 
 }
@@ -220,7 +221,7 @@ func getDataFromDataset(w http.ResponseWriter, r *http.Request){
 //
 //func getDataSetInfo(w http.ResponseWriter, r *http.Request){
 //	_, err := fmt.Fprint(w,"ohyesgepostgetDataInfo")
-//	if err != nil{
+//	if err != nil
 //		log.Fatal(err.Error())
 //	}
 //}
