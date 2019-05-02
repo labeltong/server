@@ -10,7 +10,6 @@ import (
 func main(){
 	r:= mux.NewRouter()
 	AuthInitSubrouter(r)
-	DatasetInitSubrouter(r)
 	//	infoRouter := r.PathPrefix("/info").Subrouter()
 	r.HandleFunc("/",func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

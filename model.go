@@ -1,5 +1,7 @@
 package main
 
+import "github.com/dgrijalva/jwt-go"
+
 type boxAnswer struct {
 	x1 int
 	y1 int
@@ -8,41 +10,39 @@ type boxAnswer struct {
 }
 type classifyAnswer struct {
 	questions []string
-	qlength int
+	qlength   int
 	//ans int
 }
 
 type sentimentAnswer struct {
 	questions []string
-	qlength int
+	qlength   int
 	//ans int
 }
 
-
-type answertype struct{
-	classify classifyAnswer
+type answertype struct {
+	classify  classifyAnswer
 	sentiment sentimentAnswer
-	box boxAnswer
-
+	box       boxAnswer
 }
 
 type datatolabel struct {
-	FileNum int `json:"file_num"`
-	FileID string `json:"file_id"`
-	Path   string `json:"path"`
+	FileNum  int    `json:"file_num"`
+	FileID   string `json:"file_id"`
+	Path     string `json:"path"`
 	Filetype string // classify, sentiment, box
-	Dataq []string
+	Dataq    []string
 	//IsFake bool
 	//NumofReq int
 	//NumofAns int
 
 }
 
-type datashoot struct{
-	FileID string `json:"file_id"`
+type datashoot struct {
+	FileID     string `json:"file_id"`
 	Base64data string `json:"base_64_data"`
-	Filetype string // classify, sentiment, box
-	Dataq []string
+	Filetype   string // classify, sentiment, box
+	Dataq      []string
 }
 
 type dataset struct {
@@ -63,3 +63,27 @@ type clientdata struct {
 	Pointusage []string `json:"pointusage"`
 }
 
+type clienttouser struct {
+	Email      string   `json:"email"`
+	Token      string   `json:"token"`
+	Points     int      `json:"points"`
+	Isbanned   bool     `json:"isbanned"`
+	Pointusage []string `json:"pointusage"`
+}
+type user struct {
+	Email      string   `json:"email"`
+	Token      string   `json:"token"`
+
+}
+type Claims struct {
+	Email string `json:"email"`
+	Points     int      `json:"points"`
+	Isbanned   bool     `json:"isbanned"`
+	Pointusage []string `json:"pointusage"`
+	jwt.StandardClaims
+}
+
+type ResponseResult struct {
+	Error  string `json:"error"`
+	Result string `json:"result"`
+}
