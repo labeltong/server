@@ -62,3 +62,4 @@ type clientdata struct {
 	IsAdmin    bool     `json:"is_admin"`
 	Pointusage []string `json:"pointusage"`
 }
+

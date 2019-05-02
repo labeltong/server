@@ -52,14 +52,12 @@ func init(){
 	defer cancel()
 
 
-
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		os.Getenv("DBadminID"),
 		os.Getenv("DBadminPW"),
 		os.Getenv("DBHOST"),
 		os.Getenv("DBDatabase"),
 	)
-
 
 	client, err = mongo.NewClient(options.Client().ApplyURI(uri))
 	if err !=nil{
