@@ -1,89 +1,122 @@
 package main
 
-import "github.com/dgrijalva/jwt-go"
+import (
+	"github.com/dgrijalva/jwt-go"
+	"github.com/jinzhu/gorm"
+	"time"
+)
 
-type boxAnswer struct {
-	x1 int
-	y1 int
-	x2 int
-	y2 int
-}
-type classifyAnswer struct {
-	questions []string
-	qlength   int
-	//ans int
-}
-
-type sentimentAnswer struct {
-	questions []string
-	qlength   int
-	//ans int
-}
-
-type answertype struct {
-	classify  classifyAnswer
-	sentiment sentimentAnswer
-	box       boxAnswer
+type User struct {
+	gorm.Model
+	Email         string
+	Token         string
+	Name          string
+	PhoneNum      string
+	Points        int
+	IsBanned      bool
+	BanPoint      int
+	IsAdmin       bool
+	LastLoginDate time.Time
+	AnswerList    []Answers `gorm:"foreignkey:UserId"`
+	PointUsageList []PointUsage `gorm:"foreignkey:UserId"`
 }
 
-type datatolabel struct {
-	FileNum  int    `json:"file_num"`
-	FileID   string `json:"file_id"`
-	Path     string `json:"path"`
-	Filetype string // classify, sentiment, box
-	Dataq    []string
-	//IsFake bool
-	//NumofReq int
-	//NumofAns int
+
+type PointUsage struct{
+	gorm.Model
+	UserId uint
+	ItemId uint
 
 }
 
-type datashoot struct {
-	FileID     string `json:"file_id"`
-	Base64data string `json:"base_64_data"`
-	Filetype   string // classify, sentiment, box
-	Dataq      []string
+
+
+type Items struct{
+	gorm.Model
+	Name string
+	Price int
+	Thumbnails string
 }
 
-type dataset struct {
-	Datasetname   string `json:"datasetname"`
-	Datasetdbname string `json:"datasetdbname"`
-	Isbait        bool   `json:"isbait"`
-	Numofdata     int    `json:"numofdata"`
-	Answertype    string `json:"answertype"`
+type Datasets struct {
+	gorm.Model
+	DatasetName        string
+	DatasetDescription string
+	Owner              int
+	IsFake             bool
+	NumberOfDataset    int
+	DatasetThumbnail   string
+	Answertype         string
+	DataList []Datas `gorm:"foreignkey:DatasetId"`
 }
 
-type clientdata struct {
-	Email      string   `json:"email"`
-	Token      string   `json:"token"`
-	Points     int      `json:"points"`
-	Banpoint   int      `json:"banpoint"`
-	Isbanned   bool     `json:"isbanned"`
-	IsAdmin    bool     `json:"is_admin"`
-	Pointusage []string `json:"pointusage"`
+type Datas struct {
+	gorm.Model
+	DatasetId         uint
+	IsFake            bool
+	RequiredNumAnswer int
+	DataPath          string
+	AnswerType        string
+	Question          string
+	TagList []Tags `gorm:"foreignkey:DataId"`
 }
 
-type clienttouser struct {
-	Email      string   `json:"email"`
-	Token      string   `json:"token"`
-	Points     int      `json:"points"`
-	Isbanned   bool     `json:"isbanned"`
-	Pointusage []string `json:"pointusage"`
+type TagList struct {
+	gorm.Model
+	TagId uint `gorm:"id"`
+	TagName string
+	TagDescription string
+	TagThumbnail string
 }
-type user struct {
-	Email      string   `json:"email"`
-	Token      string   `json:"token"`
+
+type Tags struct{
+	gorm.Model
+	DataID uint
+	TagID uint
+}
+
+
+type Answers struct {
+	gorm.Model
+	UserId     uint
+	DataId     uint
+	IsValid    bool
+	AnswerData string
+	AnswerTime time.Time
+}
+
+type AllAnswers struct {
+	gorm.Model
+	UserId     uint
+	DataId uint
+	IsValid    bool
+	IsBait bool
+	AnswerData string
+	AnswerTime time.Time
 
 }
-type Claims struct {
-	Email string `json:"email"`
-	Points     int      `json:"points"`
-	Isbanned   bool     `json:"isbanned"`
-	Pointusage []string `json:"pointusage"`
+
+type AnswersJSON struct {
+	Email     string `json:"email"`
+	DataId     uint `json:"data_id"`
+	AnswerData string `json:"answer_data"`
+}
+
+type UserInfoClaim struct {
+	Email         string    `json:"email"`
+	Token         string    `json:"token"`
+	Name          string    `json:"name"`
+	PhoneNum      string    `json:"phone_num"`
+	Points        int       `json:"points"`
+	IsBanned      bool      `json:"is_banned"`
+	LastLoginDate time.Time `json:"last_login_date"`
+	RegisterDate  time.Time `json:"register_date"`
 	jwt.StandardClaims
 }
 
-type ResponseResult struct {
-	Error  string `json:"error"`
-	Result string `json:"result"`
+type MakeUser struct {
+	Email    string `json:"email"`
+	Token    string `json:"token"`
+	Name     string `json:"name"`
+	PhoneNum string `json:"phone_num"`
 }

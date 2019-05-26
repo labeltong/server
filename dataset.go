@@ -1,237 +1,189 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"encoding/base64"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/labstack/gommon/log"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"html/template"
-	"math/rand"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
-/*
-/dataset/list [GET] Login function, Oauth from client required
-/dataset/list/{dsid}/get [GET] Logout function, Oauth from client required
-/dataset/list/{dsid}/{id}/ans [POST] Check if user is authenticated not yet implemented
-/dataset/list/{dsid}/{id}/info [GET] Check if user is authenticated not yet implemented
 
-*/
+var (
+	datadbs postgredb
 
-var ImageTemplate string = `<!DOCTYPE html>
-<html lang="en"><head></head>
-<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
+	dataset_verifyKey *rsa.PublicKey
+	//dataset_signKey   *rsa.PrivateKey
+)
 
-
-
-var client *mongo.Client
-
-func DatasetInitSubrouter(r *mux.Router)  {
-	ret := r.PathPrefix("/dataset").Subrouter()
-
-	ret.HandleFunc("/list", getAlldatasets).Methods("GET")
-	ret.HandleFunc("/list/{dsid}/get", getDataFromDataset).Methods("GET")
-	//ret.HandleFunc("/list/{dsid}/{id}/ans",postAnswerToDataset).Methods("POST")
-	//ret.HandleFunc("/list/{dsid}/info",getDataSetInfo).Methods("GET")
-
-
-}
 
 func init(){
-	var err error
+	//
+	//signBytes, err := ioutil.ReadFile(privKeyPath)
+	//Custom_fatal(err)
+	//
+	//asignKey, err = jwt.ParseRSAPrivateKeyFromPEM(signBytes)
+	//Custom_fatal(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	verifyBytes, err := ioutil.ReadFile(pubKeyPath)
+	Custom_fatal(err)
 
-	defer cancel()
-
-
-	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
-		os.Getenv("DBadminID"),
-		os.Getenv("DBadminPW"),
-		os.Getenv("DBHOST"),
-		os.Getenv("DBDatabase"),
-	)
-
-	client, err = mongo.NewClient(options.Client().ApplyURI(uri))
-	if err !=nil{
-		log.Error(fmt.Errorf("error occur in init of dataset handler\n"))
-		log.Fatal(err.Error())
-	}
-	err = client.Connect(ctx)
-	if err != nil {
-		// FATAL Error : Fail to connect DB
-		fmt.Printf("FATAL Error :  mongo client couldn't connect with background context %s", err.Error())
-		log.Fatal(err.Error())
-	}
+	dataset_verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
+	Custom_fatal(err)
 
 
 }
 
 
-func getAlldatasets(w http.ResponseWriter, r *http.Request){
-	r.Header.Set("Content-Type", "application/json")
+//routes
+// 2. ListTags /list/tags [GET] -> list of tags by JSON
+// 3. GetByMethods /list/methods/:id [GET] -> get data by methods
+// 4. GetByTags /list/tags/:id [GET] -> get data by tags
+// optional
+// 5. Listdataset /list/dataset[GET] -> list of datasets by JSON
+// 6. GetBydatasets /list/methods/:id [GET] -> get data by methods
+
+//TODO : MAKE example column to db and model
+//TODO : Data to S3 bucket and modify value
+
+//answer type
+//1 box 2 classification 3 sentiment(audio)
 
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-
-
-	var results []dataset
-	collection := client.Database(os.Getenv("DBDatabase")).Collection("dataset_list")
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	cursor, err := collection.Find(ctx, bson.M{})
+func ListTags(c echo.Context) error {
+	var results []TagList
+	tmpacc := datadbs.DB.Find(&results)
+	if tmpacc.Error != nil{
+		fmt.Printf("Time : %s [500 Error] Error while search all tags \n",time.Now().String())
+		return echo.ErrInternalServerError
+	}
+	pagesJson, err := json.Marshal(results)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, err = w.Write([]byte(`{ "message": "` + err.Error() + `" }`))
-		if err !=nil{
-			log.Error(fmt.Errorf("error occur Writing internal server error\n"))
-			log.Fatal(err.Error())
-		}
-		return
+		fmt.Printf("Time : %s [500 Error] Error while marshal all tags data to JSON \n",time.Now().String())
+		return echo.ErrInternalServerError
 	}
 
-	defer func(){
-		err2 := cursor.Close(ctx)
-		if err2 != nil{
-			log.Error(fmt.Errorf("error occur closing db cursor\n"))
-			log.Fatal(err.Error())
-		}
-	}()
-	for cursor.Next(ctx) {
-		var result dataset
-		err = cursor.Decode(&result)
-		if err != nil{
-			log.Error(fmt.Errorf("error occur in Decode data to dataset struct\n"))
-			log.Fatal(err.Error())
-		}
-		results = append(results, result)
+	return c.JSONBlob(http.StatusOK, pagesJson)
+}
+
+
+
+//answer type
+//1 box 2 classification 3 sentiment(audio)
+func GetByMethods(c echo.Context) error{
+	var res Datas
+	var isdup int
+	Methods := c.Param("method")
+	usertoken := strings.Split(c.Request().Header["Authorization"][0]," ")[1]
+	claims := UserInfoClaim{}
+	tknstr, _ := jwt.ParseWithClaims(usertoken, &claims, func(token *jwt.Token) (interface{}, error) {
+		return dataset_verifyKey, nil
+	})
+	if !tknstr.Valid {
+		return echo.ErrUnauthorized
 	}
-	if err := cursor.Err(); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, err = w.Write([]byte(`{ "message": "` + err.Error() + `" }`))
-		if err !=nil{
-			log.Error(fmt.Errorf("error occur Writing internal server error\n"))
-			log.Fatal(err.Error())
-		}
-		return
+	fmt.Println(usertoken)
+	user :=claims.Email
+	emailtoid := User{}
+	err := datadbs.DB.Select("id").Where("email = ?",user).First(&emailtoid)
+	Custom_panic(err.Error)
+
+	datadbs.DB.Where("answer_type = ?",Methods).Where("required_num_answer > ?",0).Order(gorm.Expr("random()")).First(&res)
+	//TODO: NO dups data for user
+	datadbs.DB.Where("id = ?",emailtoid.ID).Where("data_id = ?",res.ID).Find(&AllAnswers{}).Count(&isdup)
+	if isdup!=0 {
+		fmt.Printf("Time : %s [500 Error] Already seen this data \n",time.Now().String())
+		return echo.ErrInternalServerError
 	}
-	err = json.NewEncoder(w).Encode(results)
-	if err != nil{
-		log.Error(fmt.Errorf("error occur in endocing json results\n"))
-		log.Fatal(err.Error())
+	fmt.Println(res)
+	return c.JSON(http.StatusOK,res)
+
+}
+
+func GetByTags(c echo.Context) error{
+	var res Datas
+	var tagres Tags
+	var isdup int
+	tags := c.Param("tag")
+	usertoken := strings.Split(c.Request().Header["Authorization"][0]," ")[1]
+	claims := UserInfoClaim{}
+	tknstr, _ := jwt.ParseWithClaims(usertoken, &claims, func(token *jwt.Token) (interface{}, error) {
+		return dataset_verifyKey, nil
+	})
+	if !tknstr.Valid {
+		return echo.ErrUnauthorized
 	}
-	fmt.Println(r.Host + "Request dataset list "+ time.Now().UTC().String())
+	fmt.Println(usertoken)
+	user :=claims.Email
+	emailtoid := User{}
+	err := datadbs.DB.Select("id").Where("email = ?",user).First(&emailtoid)
+	Custom_panic(err.Error)
+
+
+	datadbs.DB.Where("tag_id = ?",tags).Order(gorm.Expr("random()")).First(&tagres)
+	i := tagres.DataID
+	datadbs.DB.Where("id = ?",i).Where("required_num_answer > ?",0).Order(gorm.Expr("random()")).First(&res)
+	//TODO: NO dups data for user
+
+	datadbs.DB.Where("id = ?",emailtoid.ID).Where("data_id = ?",res.ID).Find(&AllAnswers{}).Count(&isdup)
+	if isdup!=0 {
+		fmt.Printf("Time : %s [500 Error] Already seen this data \n",time.Now().String())
+		return echo.ErrInternalServerError
+	}
+	fmt.Println(res)
+	return c.JSON(http.StatusOK,res)
 
 }
 
 
-func getDataFromDataset(w http.ResponseWriter, r *http.Request){
-
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	params := mux.Vars(r)
-	dsName := params["dsid"]
-	var dsresult dataset
-	var result datatolabel
-	templateman := false
-	collection := client.Database(os.Getenv("DBDatabase")).Collection("dataset_list")
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	res := collection.FindOne(ctx, bson.M{"datasetdbname":dsName})
-	err := res.Decode(&dsresult)
-	if err != nil{
-		log.Error(fmt.Errorf("error occur Decoding found dataset struct\n"))
-		log.Fatal(err.Error())
-	}
-	numofdata := dsresult.Numofdata
-	rand.Seed(time.Now().UnixNano())
-	r1 := rand.Intn(numofdata - 1) + 1
-
-
-
-
-
-	collection = client.Database(os.Getenv("DBDatabase")).Collection(dsresult.Datasetdbname)
-	ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
-	res = collection.FindOne(ctx, bson.D{{"file_num" , r1}})
-
-	err = res.Decode(&result)
-
-	if err != nil{
-		log.Error(fmt.Errorf("error occur Decoding found datatolabel struct\n"))
-		log.Fatal(err.Error())
-	}
-	b, err := os.Open(result.Path)
-	if err != nil{
-		log.Error(fmt.Errorf("error occur loading images\n"))
-		log.Fatal(err.Error())
-	}
-	defer func(){
-		e := b.Close()
-		if e!=nil{
-			log.Error(fmt.Errorf("error occur closing files\n"))
-			log.Fatal(err.Error())
-		}
-	}()// just pass the file name
-	fInfo, _ := b.Stat()
-	buf := make([]byte, fInfo.Size())
-
-	fReader := bufio.NewReader(b)
-	_, err = fReader.Read(buf)
-
-	if err != nil {
-		fmt.Print(err)
-	}
-
-	shoot := datashoot{}
-	shoot.FileID = result.FileID
-	shoot.Base64data = base64.StdEncoding.EncodeToString(buf)
-	shoot.Filetype = result.Filetype
-	shoot.Dataq = result.Dataq
-
-	if templateman ==false{
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(shoot)
-
-		if err != nil{
-			log.Error(fmt.Errorf("error occur in endocing json results\n"))
-			log.Fatal(err.Error())
-		}
-	} else{
-		if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
-			log.Printf("unable to parse image template.")
-		} else {
-			data := map[string]interface{}{"Image": shoot.Base64data}
-			if err = tmpl.Execute(w, data); err != nil {
-				log.Printf("unable to execute template.")
-			}
-		}
-	}
-	fmt.Println(r.RemoteAddr + "Request random data from  "+ dsName + time.Now().UTC().String())
-
-
-}
-
-//func postAnswerToDataset(w http.ResponseWriter, r *http.Request){
-//	_, err := fmt.Fprint(w,"ohyesgepostAnswerToDataset")
-//	if err != nil{
-//		log.Fatal(err.Error())
-//	}
-//}
 //
-//func getDataSetInfo(w http.ResponseWriter, r *http.Request){
-//	_, err := fmt.Fprint(w,"ohyesgepostgetDataInfo")
-//	if err != nil
-//		log.Fatal(err.Error())
-//	}
-//}
+//
+func main() {
+	e := echo.New()
+	port := os.Args[1]
+
+	datadbs = postgredb{}
+	err := datadbs.Connect()
+		Custom_fatal(err)
+	defer func() {
+		internalerr := datadbs.DB.Close()
+		panic(internalerr)
+
+	}()
+
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	//e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	//	AllowOrigins: []string{"localhost"},
+	//	AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
+	//	AllowHeaders:[]string{"*"},
+	//	ExposeHeaders:[]string{"*"},
+	//}))
+
+
+	r := e.Group("/dataset")
+	r.GET("/tags", ListTags)
+	r.GET("/dmethods/:method",GetByMethods)
+	r.GET("/dtags/:tag",GetByTags)
+	//Configure middleware with the custom claims type
+	config := middleware.JWTConfig{
+		Claims:        &UserInfoClaim{},
+		SigningKey:    dataset_verifyKey,
+		SigningMethod: "RS256",
+	}
+	r.Use(middleware.JWTWithConfig(config))
+
+
+	e.Logger.Fatal(e.Start(port))
+
+}
+
+

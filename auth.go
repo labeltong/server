@@ -1,317 +1,249 @@
 package main
 
 import (
-	"context"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
+	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"strings"
-
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 )
 
+// login -> Get token && refresh token  [GET] tkn x
+// register -> Make token and return [POST] tkn x
+// unregister -> delete member [DELETE] tkn 0
+// edit -> edit member's info, [PUT] tkn 0
+//refactortest
 var (
-	coll *mongo.Collection
-	client *mongo.Client
+	authdbs postgredb
+	//upgrader = websocket.Upgrader{}
 
-	verifyKey *rsa.PublicKey
-	signKey   *rsa.PrivateKey
-
-	privKeyPath = "secrets/labeltong.rsa"     // openssl genrsa -out app.rsa keysize
-	pubKeyPath  = "secrets/labeltong.rsa.pub" // openssl rsa -in app.rsa -pubout > app.rsa.pub
-
+	averifyKey *rsa.PublicKey
+	asignKey   *rsa.PrivateKey
 )
 
-func AuthInitSubrouter(r *mux.Router)  {
-	ret := r.PathPrefix("/auth").Subrouter()
 
-	ret.HandleFunc("/login",LoginHandler).Methods("POST")
-	ret.HandleFunc("/testauth", TestAuthHandler).Methods("GET")
-	//ret.HandleFunc("/profile", ProfileAuthHandler).Methods("GET")
-
-
-}
-
-func init()  {
-	var err error
-	client, err = ConnectDBClient()
-	if err != nil{
-		log.Fatal(err.Error())
-	}
-	coll = client.Database(os.Getenv("DBDatabase")).Collection("client_list")
-
-	// For public/private key
+func init(){
 
 	signBytes, err := ioutil.ReadFile(privKeyPath)
-	customfatal(err)
+	Custom_fatal(err)
 
-	signKey, err = jwt.ParseRSAPrivateKeyFromPEM(signBytes)
-	customfatal(err)
+	asignKey, err = jwt.ParseRSAPrivateKeyFromPEM(signBytes)
+	Custom_fatal(err)
 
 	verifyBytes, err := ioutil.ReadFile(pubKeyPath)
-	customfatal(err)
+	Custom_fatal(err)
 
-	verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
-	customfatal(err)
+	averifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
+	Custom_fatal(err)
+
 
 }
 
 
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(c echo.Context) error{
+	// get, email=email, token=token,
+	// login and refresh
 
-	w.Header().Set("Content-Type", "application/json")
-	var user user
-	var result clientdata
-	var res ResponseResult
 
-	body, _ := ioutil.ReadAll(r.Body)
-	err := json.Unmarshal(body, &user)
+	email, token := c.QueryParam("email"), c.QueryParam("token")
+	//email, token = fmt.Sprintf(`"` + email + `"`),fmt.Sprintf(`"` + token +`"`)
 
-	if err != nil {
-		res.Error = err.Error()
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil{
-			log.Fatal(err.Error())
 
-		}
-		return
+
+	///HARDCODED_SHIT REMOVE ASAP!!!
+	//TODO: Remove this code asap
+
+	if token == "ksh" {
+
 	}
 
 
-	err = coll.FindOne(context.TODO(), bson.D{{"email", user.Email}}).Decode(&result)
-
-	if user.Email == result.Email{ // If email already exists -> refresh token
-		w.WriteHeader(http.StatusOK)
-		//_,err = w.Write([]byte("User already exists"))
-		//
-		//if err != nil {
-		//	res.Error = err.Error()
-		//	err = json.NewEncoder(w).Encode(res)
-		//	if err != nil{
-		//		log.Fatal(err.Error())
-		//
-		//	}
-		//	return
-		//}
-		newclient:= clientdata{ //Make new user's data
-			Email:user.Email,
-			Token:user.Token,
-			Points:0,
-			Banpoint:0,
-			Isbanned:false,
-			IsAdmin:false,
-			Pointusage:[]string{},
-		}
-		expirationTime := time.Now().Add(5 * time.Minute)
-		// Create the JWT claims, which includes the username and expiry time
-		claims := &Claims{
-			Email: newclient.Email,
-			Points:newclient.Points,
-			Isbanned:newclient.Isbanned,
-			Pointusage:newclient.Pointusage,
-			StandardClaims: jwt.StandardClaims{
-				// In JWT, the expiry time is expressed as unix milliseconds
-				ExpiresAt: expirationTime.Unix(),
-			},
-		}
-
-		// Declare the token with the algorithm used for signing, and the claims
-		token := jwt.NewWithClaims(jwt.GetSigningMethod("RS256"), claims)
-		// Create the JWT string
-		tokenString, err := token.SignedString(signKey)
-		if err != nil {
-			// If there is an error in creating the JWT return an internal server error
-			w.WriteHeader(http.StatusInternalServerError)
-			_, err = fmt.Fprintln(w, "Sorry, error while Signing Token!")
-			customfatal(err)
-			log.Printf("Token Signing error: %v\n", err)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(tokenString))
-
-	}else{ // Register new users
-		newclient:= clientdata{ //Make new user's data
-			Email:user.Email,
-			Token:user.Token,
-			Points:0,
-			Banpoint:0,
-			Isbanned:false,
-			IsAdmin:false,
-			Pointusage:[]string{},
-		}
+	///HARDCODED_SHIT REMOVE ASAP!!!
 
 
-		_,err = coll.InsertOne(context.TODO(),newclient) //Insert new user's data to db -> client_list
+	//ACCESS DATABASE
+	//TODO: Database Access to common db instance
+	res := User{}
+	tmpacc := authdbs.DB.Where("email = ?", email).First(&res)
+	ifnotexist := tmpacc.RecordNotFound()
+	fmt.Println(tmpacc.Value)
 
-		if err != nil {
-			res.Error = err.Error()
-			err = json.NewEncoder(w).Encode(res)
-			if err != nil{
-				log.Fatal(err.Error())
-
-			}
-			return
-		}
-		// Declare the expiration time of the token
-		// here, we have kept it as 5 minutes
-		expirationTime := time.Now().Add(5 * time.Minute)
-		// Create the JWT claims, which includes the username and expiry time
-		claims := &Claims{
-			Email: newclient.Email,
-			Points:newclient.Points,
-			Isbanned:newclient.Isbanned,
-			Pointusage:newclient.Pointusage,
-			StandardClaims: jwt.StandardClaims{
-				// In JWT, the expiry time is expressed as unix milliseconds
-				ExpiresAt: expirationTime.Unix(),
-			},
-		}
-
-		// Declare the token with the algorithm used for signing, and the claims
-		token := jwt.NewWithClaims(jwt.GetSigningMethod("RS256"), claims)
-		// Create the JWT string
-		tokenString, err := token.SignedString(signKey)
-		if err != nil {
-			// If there is an error in creating the JWT return an internal server error
-			w.WriteHeader(http.StatusInternalServerError)
-			_, err = fmt.Fprintln(w, "Sorry, error while Signing Token!")
-			customfatal(err)
-			log.Printf("Token Signing error: %v\n", err)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(tokenString))
-		customfatal(err)
+	if ifnotexist{
+		fmt.Printf("Time : %s [404 Error] Email not found email=%s\n",time.Now().String(),email)
+		return echo.ErrNotFound
 	}
 
-}
 
-func ValidateToken(w http.ResponseWriter, r *http.Request)  error {
+	v := googleAuthIDTokenVerifier.Verifier{}
+	fmt.Println(token)
+	err := v.VerifyIDToken(token, []string{})
+	if err == googleAuthIDTokenVerifier.ErrInvalidToken{
+		fmt.Println("Invalid token")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.",email))
+	}else if err == googleAuthIDTokenVerifier.ErrWrongSignature{
+		fmt.Println("wrong signature")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.",email))
 
-
-		tokenString := r.Header.Get("Authorization")
-		//1. No token
-		if len(tokenString) == 0 {
-			w.WriteHeader(http.StatusUnauthorized)
-			_,err := w.Write([]byte("Missing Authorization Header"))
-			customfatal(err)
-		}
-		//2. Token exist
-		tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// since we only use the one private key to sign the tokens,
-			// we also only use its public counter part to verify
-			return verifyKey, nil
-		})
-		switch err.(type){
-		case nil:
-			if token.Valid{
-				//2.1 valid token
-				w.WriteHeader(http.StatusOK)
-				return nil
-
-			}else{
-				//2.2 invalid token
-				w.WriteHeader(http.StatusUnauthorized)
-				_, e := fmt.Fprintln(w, "Token not valid.")
-				customfatal(e)
-				return err
-
-
-			}
-
-		case *jwt.ValidationError:
-			vErr := err.(*jwt.ValidationError)
-			switch vErr.Errors {
-			case jwt.ValidationErrorExpired:
-				//2.3 expired token
-
-				w.WriteHeader(http.StatusUnauthorized)
-				_, e := fmt.Fprintln(w, "Token Expired, get a new one.")
-				customfatal(e)
-				return  err
-
-
-			default:
-				w.WriteHeader(http.StatusInternalServerError)
-				_,e := fmt.Fprintln(w, "Error while Parsing Token!")
-				log.Printf("ValidationError error: %+v\n", vErr.Errors)
-				customfatal(e)
-				return err
-
-			}
-		default: // something else went wrong
-			w.WriteHeader(http.StatusInternalServerError)
-			_,e := fmt.Fprintln(w, "Error while Parsing Token!")
-			customfatal(e)
-			log.Printf("Token parse error: %v\n", err)
-			return err
-		}
-
-
-		//name := token.Claims.(jwt.MapClaims)
-
-}
-
-func TestAuthHandler(w http.ResponseWriter, r *http.Request) {
-	err := ValidateToken(w,r)
-	if err !=nil{
-		_,_ = w.Write([]byte("forbidden") )
-
-
-	}else {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("authed"))
+	}else if err == googleAuthIDTokenVerifier.ErrTokenUsedTooLate{
+		fmt.Println("token expired")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.",email))
+	}else if err != nil{
+		log.Error(err.Error())
 	}
+	claimSet, _ := googleAuthIDTokenVerifier.Decode(token)
+
+	if claimSet.Email != email{
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.",email))
+
+	}
+
+
+	//ACCESS DATABASE
+
+
+	fmt.Printf("Time : %s [200 OK] autorized login with email=%s, token=%s\n",time.Now().String(),email, token)
+	claims := &UserInfoClaim{
+
+		Email:res.Email,
+		Token:"ABRACADABRA!",
+		Name:res.Name,
+		PhoneNum:res.PhoneNum,
+		Points:res.Points,
+		IsBanned:res.IsBanned,
+		RegisterDate:res.CreatedAt,
+		LastLoginDate:res.LastLoginDate,
+
+	}
+	claims.ExpiresAt = time.Now().Add(time.Minute * expiredTimeInMinute).Unix()
+	claims.IssuedAt = time.Now().Unix()
+
+
+	t := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+
+	tokenstring, tknerr := t.SignedString(asignKey)
+
+
+	if tknerr != nil {
+		fmt.Printf("Time : %s [500 Error] Error while signing jwt token with email=%s\n",time.Now().String(),email)
+		return echo.ErrInternalServerError
+
+	}
+	//ACCESS DATABASE
+
+	loginchange := authdbs.DB.Model(&res).Where("id = ?", res.ID).Update("last_login_date", time.Now())
+
+	//ACCESS DATABASE
+
+	if loginchange.Error != nil{
+		fmt.Printf("Time : %s [500 Error] Error while changing last_login date with email=%s\n",time.Now().String(),email)
+		return echo.ErrInternalServerError
+
+	}
+
+	fmt.Printf("Time : %s [200 OK] Token publish successfully with user email=%s\n", time.Now().String(),email)
+	return c.String(http.StatusOK, tokenstring)
+
+
 }
 
-//func ProfileAuthHandler(w http.ResponseWriter, r *http.Request) {
-//	t, err := ValidateToken(w,r)
-//	if err !=nil{
-//		_,_ = w.Write([]byte("forbidden") )
-//		return
-//
-//	}else {
-//		_,_ = w.Write([]byte("forbidden") )
-//
-//		}
-//	}
-//}
-//func ProfileHandler(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json")
-//	tokenString := r.Header.Get("Authorization")
-//	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-//		// Don't forget to validate the alg is what you expect:
-//		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-//			return nil, fmt.Errorf("Unexpected signing method")
-//		}
-//		return []byte("secret"), nil
-//	})
-//	var result model.User
-//	var res model.ResponseResult
-//	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-//		result.Username = claims["username"].(string)
-//		result.FirstName = claims["firstname"].(string)
-//		result.LastName = claims["lastname"].(string)
-//
-//		json.NewEncoder(w).Encode(result)
-//		return
-//	} else {
-//		res.Error = err.Error()
-//		json.NewEncoder(w).Encode(res)
-//		return
-//	}
-//
-//}
+func RegisterHandler(c echo.Context) error {
+
+
+	newone := &MakeUser{}
+	if err := c.Bind(newone); err != nil {
+		fmt.Printf("Time : %s [500 Error] Error while creating user  with email=%s, token=%s\n",time.Now().String(), newone.Email, newone.Token)
+		return echo.ErrInternalServerError
+	}
+
+	tmpdb := authdbs.DB.Where("email = ?", newone.Email).First(&User{})
+
+	if tmpdb.Value == nil{
+		fmt.Printf("Time : %s [500 Error] User exists  with email=%s \n",time.Now().String(), newone.Email)
+		return c.String(http.StatusBadRequest,fmt.Sprintf("Email %s Already exist", newone.Email))
+	}
+
+
+
+	v := googleAuthIDTokenVerifier.Verifier{}
+	err := v.VerifyIDToken(newone.Token, []string{})
+	if err == googleAuthIDTokenVerifier.ErrInvalidToken{
+		fmt.Println("Invalid token")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.", newone.Email))
+	}else if err == googleAuthIDTokenVerifier.ErrWrongSignature{
+		fmt.Println("wrong signature")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.", newone.Email))
+
+	}else if err == googleAuthIDTokenVerifier.ErrTokenUsedTooLate{
+		fmt.Println("token expired")
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.", newone.Email))
+	}else if err != nil{
+		log.Error(err.Error())
+	}
+	claimSet, _ := googleAuthIDTokenVerifier.Decode(newone.Token)
+
+	if claimSet.Email != newone.Email{
+		return c.String(echo.ErrForbidden.Code,fmt.Sprintf("Email %s is not valid with token.", newone.Email))
+
+	}
+
+	tmpacc := authdbs.DB.Create(&User{
+		Email:         newone.Email,
+		Token:         "ABRACADABRA!",
+		Name:          newone.Name,
+		PhoneNum:      newone.PhoneNum,
+
+		LastLoginDate: time.Now(),
+
+	})
+
+	if tmpacc.Error != nil {
+		fmt.Printf("Time : %s [500 Error] Error while creating user  with email=%s, token=%s\n",time.Now().String(), newone.Email, newone.Token)
+		return echo.ErrInternalServerError
+		//fatal(tmpacc.Error)
+
+	}
+
+
+	fmt.Printf("Time : %s [201 created] Creating user  with email=%s, \n",time.Now().String(), newone.Email)
+	return c.JSON(http.StatusCreated, newone)
+
+}
+
+func main() {
+	//name := os.Args[1]
+	port := os.Args[1]
+	e := echo.New()
+	authdbs = postgredb{}
+	err := authdbs.Connect()
+	Custom_panic(err)
+	defer func(){
+		internalerr := authdbs.DB.Close()
+		Custom_panic(internalerr)
+
+	}()
+
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	//e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	//	AllowOrigins: []string{"localhost"},
+	//	AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
+	//	AllowHeaders:[]string{"*"},
+	//	ExposeHeaders:[]string{"*"},
+	//}))
+
+	// Login route
+	e.GET("/auth", LoginHandler)
+	e.POST("/auth", RegisterHandler)
+
+
+
+	e.Logger.Fatal(e.Start(port))
+}
