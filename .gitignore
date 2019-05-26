@@ -839,6 +839,11 @@ MigrationBackup/
 
 # Secret keys like test OAuth 2.0 token or AWS root key
 secrets/
+imgs/
+rickrolling/
+utils/
+config.go
+
 
 # Datasets
 imageserver/dataset/
@@ -846,8 +851,17 @@ imageserver/dataset/
 go.mod
 go.sum
 
+
 ./imageserver/controller_test.go
 ./imageserver/db_test.go
 imageserver/controller_test\.go
 
 imageserver/db_test\.go
+
+#binary
+auth
+dataset
+main
+answer
+
+#
