@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
-"github.com/labstack/echo"
+	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	"io/ioutil"
@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-
-
 var (
 	answerdbs postgredb
 
@@ -23,9 +21,7 @@ var (
 	//dataset_signKey   *rsa.PrivateKey
 )
 
-
-func init(){
-
+func init() {
 
 	verifyBytes, err := ioutil.ReadFile(pubKeyPath)
 	Custom_fatal(err)
@@ -33,13 +29,10 @@ func init(){
 	answer_verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
 	Custom_fatal(err)
 
-
 }
 
 func CreateAnswer(db *gorm.DB, ans AnswersJSON) error {
 	tx := db.Begin()
-
-
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -52,26 +45,26 @@ func CreateAnswer(db *gorm.DB, ans AnswersJSON) error {
 	}
 
 	var emailtoid User
-	err := db.Where("email = ?",ans.Email).First(&emailtoid)
+	err := db.Where("email = ?", ans.Email).First(&emailtoid)
 	Custom_panic(err.Error)
 
 	q := Answers{
-		UserId:emailtoid.ID,
-		DataId:ans.DataId,
-		AnswerData:ans.AnswerData,
-		AnswerTime:time.Now(),
+		UserId:     emailtoid.ID,
+		DataId:     ans.DataId,
+		AnswerData: ans.AnswerData,
+		AnswerTime: time.Now(),
 	}
 
 	if err := tx.Create(&q).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-	if a := tx.Table("public.datas").Where("id = ?",q.DataId).UpdateColumn("required_num_answer", gorm.Expr("required_num_answer - ?", 1)).Error; a != nil {
+	if a := tx.Table("public.datas").Where("id = ?", q.DataId).UpdateColumn("required_num_answer", gorm.Expr("required_num_answer - ?", 1)).Error; a != nil {
 		tx.Rollback()
 		return a
 	}
 
-	if b := tx.Table("public.users").Where("id = ?",q.UserId).UpdateColumn("points", gorm.Expr("points + ?", 1)).Error; b != nil {
+	if b := tx.Table("public.users").Where("id = ?", q.UserId).UpdateColumn("points", gorm.Expr("points + ?", 1)).Error; b != nil {
 		tx.Rollback()
 		return b
 	}
@@ -134,12 +127,9 @@ func main() {
 	//	ExposeHeaders:[]string{"*"},
 	//}))
 
-
-
 	//Restricted group
 	r := e.Group("/answer")
 	r.POST("/answer", SubmitData)
-
 
 	// Configure middleware with the custom claims type
 	config := middleware.JWTConfig{
@@ -153,4 +143,3 @@ func main() {
 	e.Logger.Fatal(e.Start(port))
 
 }
-

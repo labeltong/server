@@ -8,24 +8,20 @@ import (
 	"time"
 )
 
-
-type postgredb struct{
-	DB *gorm.DB
-	db_type string
-	host string
-	port int
-	user string
-	dbname string
-	password string
+type postgredb struct {
+	DB          *gorm.DB
+	db_type     string
+	host        string
+	port        int
+	user        string
+	dbname      string
+	password    string
 	maxidleconn int
 	maxopenconn int
 	maxconnhour time.Duration
-
-
 }
 
-
-func (p *postgredb) Connect() (err error){
+func (p *postgredb) Connect() (err error) {
 
 	p.db_type = "postgres"
 
@@ -38,7 +34,7 @@ func (p *postgredb) Connect() (err error){
 	p.maxopenconn = DB_maxopenvalue
 	p.maxconnhour = time.Hour
 
-	connstr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s  password=%s sslmode=disable",p.host, p.port, p.user, p.dbname, p.password)
+	connstr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s  password=%s sslmode=disable", p.host, p.port, p.user, p.dbname, p.password)
 	p.DB, err = gorm.Open(p.db_type, connstr)
 
 	if err != nil {
@@ -51,8 +47,6 @@ func (p *postgredb) Connect() (err error){
 	p.DB.DB().SetConnMaxLifetime(p.maxconnhour)
 	p.DB.LogMode(true)
 
-
 	return nil
 
 }
-

@@ -8,33 +8,29 @@ import (
 
 type User struct {
 	gorm.Model
-	Email         string
-	Token         string
-	Name          string
-	PhoneNum      string
-	Points        int
-	IsBanned      bool
-	BanPoint      int
-	IsAdmin       bool
-	LastLoginDate time.Time
-	AnswerList    []Answers `gorm:"foreignkey:UserId"`
+	Email          string
+	Token          string
+	Name           string
+	PhoneNum       string
+	Points         int
+	IsBanned       bool
+	BanPoint       int
+	IsAdmin        bool
+	LastLoginDate  time.Time
+	AnswerList     []Answers    `gorm:"foreignkey:UserId"`
 	PointUsageList []PointUsage `gorm:"foreignkey:UserId"`
 }
 
-
-type PointUsage struct{
+type PointUsage struct {
 	gorm.Model
 	UserId uint
 	ItemId uint
-
 }
 
-
-
-type Items struct{
+type Items struct {
 	gorm.Model
-	Name string
-	Price int
+	Name       string
+	Price      int
 	Thumbnails string
 }
 
@@ -47,7 +43,7 @@ type Datasets struct {
 	NumberOfDataset    int
 	DatasetThumbnail   string
 	Answertype         string
-	DataList []Datas `gorm:"foreignkey:DatasetId"`
+	DataList           []Datas `gorm:"foreignkey:DatasetId"`
 }
 
 type Datas struct {
@@ -58,23 +54,22 @@ type Datas struct {
 	DataPath          string
 	AnswerType        string
 	Question          string
-	TagList []Tags `gorm:"foreignkey:DataId"`
+	TagList           []Tags `gorm:"foreignkey:DataId"`
 }
 
 type TagList struct {
 	gorm.Model
-	TagId uint `gorm:"id"`
-	TagName string
+	TagId          uint `gorm:"id"`
+	TagName        string
 	TagDescription string
-	TagThumbnail string
+	TagThumbnail   string
 }
 
-type Tags struct{
+type Tags struct {
 	gorm.Model
 	DataID uint
-	TagID uint
+	TagID  uint
 }
-
 
 type Answers struct {
 	gorm.Model
@@ -88,17 +83,16 @@ type Answers struct {
 type AllAnswers struct {
 	gorm.Model
 	UserId     uint
-	DataId uint
+	DataId     uint
 	IsValid    bool
-	IsBait bool
+	IsBait     bool
 	AnswerData string
 	AnswerTime time.Time
-
 }
 
 type AnswersJSON struct {
-	Email     string `json:"email"`
-	DataId     uint `json:"data_id"`
+	Email      string `json:"email"`
+	DataId     uint   `json:"data_id"`
 	AnswerData string `json:"answer_data"`
 }
 
