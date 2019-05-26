@@ -85,7 +85,17 @@ func main() {
 				d := dataToSlice(pick)
 
 				selected,_ := NMS(d,int(dberr.RowsAffected),int(v.ID))
-				fmt.Println(pick.didx[selected].AnswerData)
+				/// Delete and increase ban point to users.
+				for i,v := range pick.didx{
+					if i == selected{
+						validDB.DB.Model(v).Update("is_valid", true)
+					}else{
+						validDB.DB.Delete(v)
+					}
+				}
+
+
+
 			}else{
 
 				dberr = validDB.DB.Where("data_id = ?",v.ID).Find(&pick.didx)
@@ -95,10 +105,20 @@ func main() {
 				ans := qsdataToSlice(pick)
 				ansarr, ansn := multipleQs(ans,len(ans))
 				fmt.Println(ansarr, ansn)
+
+				for i,v := range pick.didx{
+					if i == ansn{
+						validDB.DB.Model(v).Update("is_valid", true)
+					}else{
+						validDB.DB.Delete(v)
+					}
+				}
+
+				}
 			}
 		}
 	}
-}
+
 
 
 func makecoordslice(sl [][4]int, loc int) []int {
