@@ -3,52 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/labstack/gommon/log"
+	"image"
 	"sort"
-	"strconv"
-	"strings"
 )
-
-type Slice struct {
-	sort.Interface
-	idx []int
-}
-
-func (s Slice) Swap(i, j int) {
-	s.Interface.Swap(i, j)
-	s.idx[i], s.idx[j] = s.idx[j], s.idx[i]
-}
-func NewSlice(n sort.Interface) *Slice {
-	s := &Slice{Interface: n, idx: make([]int, n.Len())}
-	for i := range s.idx {
-		s.idx[i] = i
-	}
-	return s
-}
-func NewIntSlice(n []int) *Slice { return NewSlice(sort.IntSlice(n)) }
-
-func max(x, y int) int {
-	if x < y {
-		return y
-	}
-	return x
-}
-
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
-}
 
 var (
 	validDB postgredb
 )
-
-type DataToVerify struct {
-	didx []Answers
-	dn   int
-}
-
 
 func main() {
 
@@ -69,104 +30,70 @@ func main() {
 	var pick DataToVerify
 	var dlist []Datas
 	dberr := validDB.DB.Find(&dlist)
-	if dberr.Error != nil{
+	if dberr.Error != nil {
 		Custom_panic(dberr.Error)
 	}
 
-	for _,v := range dlist{
-		if v.RequiredNumAnswer ==0{
-			if v.AnswerType == "1"{
+	for _, v := range dlist {
+		if (v.RequiredNumAnswer == 0) && (v.IsFake != true) {
+			if v.AnswerType == "1" {
 
-				dberr = validDB.DB.Where("data_id = ?",v.ID).Find(&pick.didx)
-				if dberr.Error != nil{
+				dberr = validDB.DB.Where("data_id = ?", v.ID).Find(&pick.didx)
+				if dberr.Error != nil || dberr. {
 					Custom_panic(dberr.Error)
 				}
 
-				d := dataToSlice(pick)
+				d := dataToRect(pick)
 
-				selected,_ := NMS(d,int(dberr.RowsAffected),int(v.ID))
+				selected, _ := NMS(d, int(dberr.RowsAffected), int(v.ID))
 				/// Delete and increase ban point to users.
-				for i,v := range pick.didx{
-					if i == selected{
+				for i, v := range pick.didx {
+					if i == selected {
 						validDB.DB.Model(v).Update("is_valid", true)
-					}else{
+					} else {
 						validDB.DB.Delete(v)
+						// For banpoints for wrong data
+						//validDB.DB.Table("public.users").Where("id = ?", v.UserId).UpdateColumn("ban_point", gorm.Expr("ban_point + ?", 1))
+
 					}
 				}
 
+			} else {
 
-
-			}else{
-
-				dberr = validDB.DB.Where("data_id = ?",v.ID).Find(&pick.didx)
-				if dberr.Error != nil{
+				dberr = validDB.DB.Where("data_id = ?", v.ID).Find(&pick.didx)
+				if dberr.Error != nil {
 					Custom_panic(dberr.Error)
 				}
 				ans := qsdataToSlice(pick)
-				ansarr, ansn := multipleQs(ans,len(ans))
+				ansarr, ansn := multipleQs(ans, len(ans))
 				fmt.Println(ansarr, ansn)
 
-				for i,v := range pick.didx{
-					if i == ansn{
+				for i, v := range pick.didx {
+					if i == ansn {
 						validDB.DB.Model(v).Update("is_valid", true)
-					}else{
+					} else {
 						validDB.DB.Delete(v)
+						// For banpoints for wrong data
+						//validDB.DB.Table("public.users").Where("id = ?", v.UserId).UpdateColumn("ban_point", gorm.Expr("ban_point + ?", 1))
+
 					}
 				}
 
-				}
 			}
 		}
 	}
-
-
-
-func makecoordslice(sl [][4]int, loc int) []int {
-	tmp := make([]int, len(sl))
-
-	for i, v := range sl {
-		tmp[i] = v[loc]
-
-	}
-
-	return tmp
 }
 
-func dataToSlice(d DataToVerify) [][4]int {
-	var tmp [][4]int
-	var rowtmp [4]int
-
-	for _, v := range d.didx {
-		stringSlice := strings.Split(v.AnswerData, ",")
-		for i, v := range stringSlice {
-			rowtmp[i], _ = strconv.Atoi(v)
-		}
-		tmp = append(tmp, rowtmp)
-	}
-	return tmp
-
-}
-
-func qsdataToSlice(d DataToVerify) []int {
-	tmp := make([]int, len(d.didx))
-
-	for i, v := range d.didx {
-		tmp[i],_ = strconv.Atoi(v.AnswerData)
-	}
-	return tmp
-
-}
-
-func multipleQs(candidateQs []int, n int) ([]int ,int) {
+func multipleQs(candidateQs []int, n int) ([]int, int) {
 	//TODO: MAKE multiple questions verifications.
 	tmp := make([]int, n)
-	for _,v := range candidateQs{
-		tmp[v-1] ++
+	for _, v := range candidateQs {
+		tmp[v-1]++
 	}
 	maxtmp := 0
 	maxidx := 0
-	for i,v := range tmp{
-		if v >= maxtmp{
+	for i, v := range tmp {
+		if v >= maxtmp {
 			maxtmp = v
 			maxidx = i
 		}
@@ -174,7 +101,7 @@ func multipleQs(candidateQs []int, n int) ([]int ,int) {
 	return tmp, maxidx
 }
 
-func NMS(candidateQs [][4]int, n int, dataId int) (int, error)  {
+func NMS(candidateQs []image.Rectangle, n int, dataId int) (int, error) {
 	//TODO: MAKE multiple questions verifications.
 	if n == 0 {
 		return 0, fmt.Errorf("no box to calculate")
@@ -183,10 +110,10 @@ func NMS(candidateQs [][4]int, n int, dataId int) (int, error)  {
 	area := make([]int, n)
 	var pick []int
 	overlapThresh := 0.3
-	x1 := makecoordslice(candidateQs, 0)
-	x2 := makecoordslice(candidateQs, 1)
-	y1 := makecoordslice(candidateQs, 2)
-	y2 := makecoordslice(candidateQs, 3)
+	x1 := rectmakecoordslice(candidateQs, 0)
+	x2 := rectmakecoordslice(candidateQs, 1)
+	y1 := rectmakecoordslice(candidateQs, 2)
+	y2 := rectmakecoordslice(candidateQs, 3)
 
 	for i := 0; i < n; i++ {
 		area[i] = (x2[i] - x1[i] + 1) * (y2[i] - y1[i] + 1)

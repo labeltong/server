@@ -1,0 +1,2 @@
+0 0 * * * sh -c ~/labeltong_final/server/trollcheck
+0 0 * * * sh -c ~/labeltong_final/server/nms

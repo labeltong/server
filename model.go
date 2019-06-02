@@ -96,6 +96,12 @@ type AnswersJSON struct {
 	AnswerData string `json:"answer_data"`
 }
 
+//type AnswersJSON struct {
+//	Email      string `json:"email"`
+//	DataId     uint   `json:"data_id"`
+//	AnswerData string `json:"answer_data"`
+//}
+
 type UserInfoClaim struct {
 	Email         string    `json:"email"`
 	Token         string    `json:"token"`
